@@ -1,0 +1,47 @@
+{
+   "entries" : {
+      "4656f088-0379-49af-a414-52d5d6002a47" : {
+         "eric-pc-up-data-plane" : "41-47,137-143"
+      },
+      "7776d501-650f-4501-93d4-509c23430cd0" : {
+         "eric-pc-up-data-plane" : "20-26,116-122"
+      },
+      "a9ab02d4-c08d-42b2-b5d0-474c43d1a871" : {
+         "eric-pc-up-data-plane" : "13-19,109-115"
+      },
+      "f66add72-58f1-4676-a437-b13fc2d2f83b" : {
+         "mon" : "4-5,100-101",
+         "chown-container-data-dir" : "4-5,100-101",
+         "init-mon-fs" : "4-5,100-101"
+      },
+      "ef4ff370-0cf7-42c3-9952-32c033257ce7" : {
+         "eric-pc-up-data-plane" : "6-12,102-108"
+      },
+      "048ce3dc-6bed-42ad-9cb6-78d09337faed" : {
+         "eric-pc-up-data-plane" : "65-71,161-167"
+      },
+      "17f878fd-fb73-42d5-9d1e-3ffdacf2ab07" : {
+         "eric-pc-up-data-plane" : "58-64,154-160"
+      },
+      "3367b904-b4f8-4966-a311-2b3e146813f3" : {
+         "eric-pc-up-data-plane" : "48,52-57,144,148-153"
+      },
+      "8c0ebe9f-131c-4af6-aef4-48fd223cfdce" : {
+         "eric-pc-up-data-plane" : "27-33,123-129"
+      },
+      "3ee6b330-0b3d-49d0-a9f1-400708b17f54" : {
+         "eric-pc-up-data-plane" : "34-40,130-136"
+      },
+      "bf4e1603-21ec-467f-b54e-1af32e93ba01" : {
+         "eric-pc-up-data-plane" : "72-78,168-174"
+      },
+      "47525978-b2ca-49be-a8f2-06e54c927e11" : {
+         "activate" : "49-51,145-147",
+         "osd" : "49-51,145-147",
+         "chown-container-data-dir" : "49-51,145-147"
+      }
+   },
+   "policyName" : "static",
+   "checksum" : 2747633392,
+   "defaultCpuSet" : "0-3,79-99,175-191"
+}
