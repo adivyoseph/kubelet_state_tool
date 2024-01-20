@@ -19,6 +19,7 @@ type coreStruct struct{
 	containerType string
 	podIndex int
 	containerIndex int
+	splitL3Pod int
 }
 type l3GroupStruct struct {
 	ID   int
@@ -115,7 +116,7 @@ func printMap(topo *topologyStruct){
 	smtOn := topo.smtOn
 
 
-	fmt.Printf("\n/var/lib/kubelet/cpu_manager_state PODS\n")
+
 	fmt.Printf("index: POD name\n")
 	fmt.Printf("      - index: container name  (cpus )\n")
 	for p := 0; p < len(pods); p++ {
@@ -167,7 +168,12 @@ func printMap(topo *topologyStruct){
 						output := topo.sockets[s].nodes[n].l3Groups[l].cores[i].containerType
 						if output != "" {
 							if output == "S" {
-								fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l].cores[i].podIndex)
+								if topo.sockets[s].nodes[n].l3Groups[l].cores[i].splitL3Pod > 0 {
+									fmt.Printf("\x1B[31m%3d\x1B[0m ", topo.sockets[s].nodes[n].l3Groups[l].cores[i].podIndex)
+								}  else {
+									fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l].cores[i].podIndex)
+								}
+								
 							} else {
 								fmt.Printf("    " )
 							}
@@ -195,6 +201,7 @@ func htopoSetState(topo *topologyStruct, socket int, node int, llc int, index in
 	topo.sockets[socket].nodes[node].l3Groups[llc].cores[index].containerType = state
 	topo.sockets[socket].nodes[node].l3Groups[llc].cores[index].podIndex = pod
 	topo.sockets[socket].nodes[node].l3Groups[llc].cores[index].containerIndex = container
+	
 }
 
 func topoSetCpuState(topo *topologyStruct, cpu int, state string, pod int, container int) {
@@ -204,6 +211,7 @@ func topoSetCpuState(topo *topologyStruct, cpu int, state string, pod int, conta
 }
 
 func setCpuSet(topo *topologyStruct, cpuSet string, pod int, container int) {
+
 	s := strings.Split(cpuSet, ",")
 	for i := 0; i < len(s); i++ {
 		c := strings.Split(s[i], "-")
@@ -268,7 +276,46 @@ func readStateFile(topo *topologyStruct, file string) error {
 		}
 		//fmt.Printf(" %d  %q : %q\n", i, containers[i].Name, containers[i].CpuSet)
 	}
+	for p := 0; p < len(pods); p++ {
+		lastL3Id := -1									
+		splitFound := 0
+		for s := 0; s < len(topo.sockets); s++{
+			for n := 0; n < len(topo.sockets[s].nodes); n++ {
+				for l := 0; l < len(topo.sockets[s].nodes[n].l3Groups); l++ {
+					for c := 0; c < len(topo.sockets[s].nodes[n].l3Groups[l].cores); c++ {
+						if topo.sockets[s].nodes[n].l3Groups[l].cores[c].podIndex == p {
+							if lastL3Id < 0 {
+								lastL3Id = l
+							} else {
+								if lastL3Id != l{
+									//lastL3Id = l
+									splitFound++
+								}
+							}
 
+						}
+						
+					}
+				}
+			}
+		}
+		if splitFound > 0 {
+			for s := 0; s < len(topo.sockets); s++{
+				for n := 0; n < len(topo.sockets[s].nodes); n++ {
+					for l := 0; l < len(topo.sockets[s].nodes[n].l3Groups); l++ {
+						for c := 0; c < len(topo.sockets[s].nodes[n].l3Groups[l].cores); c++ {
+							if topo.sockets[s].nodes[n].l3Groups[l].cores[c].podIndex == p {
+								topo.sockets[s].nodes[n].l3Groups[l].cores[c].splitL3Pod = 1
+	
+							}
+							
+						}
+					}
+				}
+			}
+		}
+		
+	}
 
 	return nil
 
