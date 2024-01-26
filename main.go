@@ -78,6 +78,7 @@ var cpuLookup [512]cpuLookupStruct
 
 func main() {
 	var topo *topologyStruct
+	fmt.Printf("Martin's Kubelet cpu_mamger_state file maper version: 1.0\n")
     sockets    := flag.Int("s", 1, "Sockets")
 	numaPer    := flag.Int("n", 1, "NUMA nodes per Sockets")
 	l3PerNode  := flag.Int("l", 4, "L3Groups per NUMA node")
@@ -115,7 +116,8 @@ func main() {
 func printMap(topo *topologyStruct){
 	smtOn := topo.smtOn
 
-
+	l3groupsPerNode := topo.sockets[0].nodes[0].numL3Groups
+	coresPerL3Node :=  topo.sockets[0].nodes[0].l3Groups[0].numCores
 
 	fmt.Printf("index: POD name\n")
 	fmt.Printf("      - index: container name  (cpus )\n")
@@ -130,66 +132,87 @@ func printMap(topo *topologyStruct){
 	for s := 0; s < len(topo.sockets); s++{
 		fmt.Printf("Socket[%v]\n",s)
 		for n := 0; n < len(topo.sockets[s].nodes); n++ {
-		fmt.Printf("Node[%v]\n", n)
-			for l := 0; l < len(topo.sockets[s].nodes[n].l3Groups); l++ {
-				fmt.Printf("L3group[%v]\n    CPU:  ", l)
+			fmt.Printf("Node[%v]\n", n)
+			widthMax := 1
+			if l3groupsPerNode > 4 {
+				widthMax = 4
+			}
+			for l := 0; l < l3groupsPerNode; l = l+ widthMax {
+				for w := 0; (w < widthMax) && (w+ l < l3groupsPerNode); w++ {
+					fmt.Printf("LLCgroup[%v]                            ", l+w)
+					if w == 0 {
+						fmt.Printf("         ")
+					}
+				}
+			
+				fmt.Printf("\n    CPU:  ")
+				for w := 0; (w < widthMax) && (w+l < l3groupsPerNode); w++ {
+					for i := 0; i < coresPerL3Node; i++ {
+						fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l+w].cores[i].cpu[0])
+					}
+					fmt.Printf("       ")
+				}
+			
+				fmt.Printf("\n")
 				if smtOn == 2 {
-					
-					coresPerL3 := len(topo.sockets[s].nodes[n].l3Groups[l].cores)
-					for i := 0; i < coresPerL3; i++ {
-						fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l].cores[i].cpu[0])
-					}
-					fmt.Printf("\n    CPU:  ")
-					for i := 0; i < coresPerL3; i++  {
-						fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l].cores[i].cpu[1])
-					}
-					fmt.Printf("\n    type: ")
-					for i := 0; i < coresPerL3; i++ {
-						fmt.Printf("%3s ", topo.sockets[s].nodes[n].l3Groups[l].cores[i].containerType)
-					}
-
-					fmt.Printf("\n    Con:  ")
-					for i := 0; i < coresPerL3; i++  {
-						output := topo.sockets[s].nodes[n].l3Groups[l].cores[i].containerType
-						if output != "" {
-							if output == "S" {
-								fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l].cores[i].containerIndex)
-							} else {
-								fmt.Printf("    " )
-							}
-	
-						} else {
-							fmt.Printf("    ")
+					fmt.Printf("    CPU:  ")
+					for w := 0; (w < widthMax) && (w+l < l3groupsPerNode); w++ {
+						for i := 0; i < coresPerL3Node; i++ {
+							fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l+w].cores[i].cpu[1])
 						}
-					}
-
-					fmt.Printf("\n    POD:  ")
-					for i := 0; i < coresPerL3; i++  {
-						output := topo.sockets[s].nodes[n].l3Groups[l].cores[i].containerType
-						if output != "" {
-							if output == "S" {
-								if topo.sockets[s].nodes[n].l3Groups[l].cores[i].splitL3Pod > 0 {
-									fmt.Printf("\x1B[31m%3d\x1B[0m ", topo.sockets[s].nodes[n].l3Groups[l].cores[i].podIndex)
-								}  else {
-									fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l].cores[i].podIndex)
-								}
-								
-							} else {
-								fmt.Printf("    " )
-							}
-	
-						} else {
-							fmt.Printf("    ")
-						}
+						fmt.Printf("       ")
 					}
 					fmt.Printf("\n")
+				}
+				fmt.Printf("    type: ")
+				for w := 0; (w < widthMax) && (w+l < l3groupsPerNode); w++ {
+					for i := 0; i < coresPerL3Node; i++ {
+						fmt.Printf("%3s ", topo.sockets[s].nodes[n].l3Groups[l+w].cores[i].containerType)
+					}
+					fmt.Printf("       ")
+				}
+				fmt.Printf("\n")
+				fmt.Printf("    Con:  ")
+				for w := 0; (w < widthMax) && (w+l < l3groupsPerNode); w++ {
+					for i := 0; i < coresPerL3Node; i++ {
+						output := topo.sockets[s].nodes[n].l3Groups[l+w].cores[i].containerType
+						if output != "" {
+							if output == "R" {
+								fmt.Printf(" -- ")
+							} else {
+								fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l+w].cores[i].containerIndex)
+							}
 
-				} else {
-
+						} else {
+							fmt.Printf("    ")
+						}
+					}
+					fmt.Printf("       ")
 				}
 
+				fmt.Printf("\n    POD:  ")
+				for w := 0; (w < widthMax) && (w+l < l3groupsPerNode); w++ {
+					for i := 0; i < coresPerL3Node; i++ {
+						output := topo.sockets[s].nodes[n].l3Groups[l+w].cores[i].containerType
+						if output != "" {
+							if output == "R" {
+								fmt.Printf(" -- ")
+							} else {
+								if topo.sockets[s].nodes[n].l3Groups[l+w].cores[i].splitL3Pod  > 0 {
+									fmt.Printf("\x1B[31m%3d\x1B[0m ", topo.sockets[s].nodes[n].l3Groups[l+w].cores[i].podIndex)
+								} else {
+									fmt.Printf("%3d ", topo.sockets[s].nodes[n].l3Groups[l+w].cores[i].podIndex)
+								}
+							}
+						} else {
+							fmt.Printf("    ")
+						}
+					}
+					fmt.Printf("       ")
+				}
+				fmt.Printf("\n")
 			}
-
+			
 		}
 
 	}
